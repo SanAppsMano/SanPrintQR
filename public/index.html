@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Impressora</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <h1 id="printerName"></h1>
+  <ul id="jobs"></ul>
+  <script src="/app.js"></script>
+  <script>
+  const pid = location.pathname.split('/').pop();
+  requireLogin();
+  let printer;
+
+  async function load() {
+    const b = await api('/api/i/' + pid + '/bootstrap');
+    printer = b.printer;
+    document.getElementById('printerName').textContent = printer.name;
+    refreshQueue();
+  }
+
+  async function refreshQueue(){
+    const data = await api('/api/my-queue?pid=' + pid);
+    const ul = document.getElementById('jobs');
+    ul.innerHTML = '';
+    data.jobs.forEach(j => {
+      const li = document.createElement('li');
+      li.textContent = j.filename + ' ('+j.pages+'p) - ' + j.status + ' ';
+      if(j.status === 'held'){
+        const btn = document.createElement('button');
+        btn.textContent = 'Imprimir aqui';
+        btn.onclick = async () => {
+          await api('/api/release', {method:'POST', body:JSON.stringify({jobId:j.jobId, pid})});
+          refreshQueue();
+        };
+        li.appendChild(btn);
+      }
+      ul.appendChild(li);
+    });
+  }
+
+  load();
+  </script>
+</body>
+</html>
